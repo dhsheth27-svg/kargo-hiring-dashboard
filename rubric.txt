@@ -1,0 +1,57 @@
+KARGO HIRING RUBRIC — PRODUCT MANAGER (PM)
+Built from patterns in 8 past Kargo hire CVs (5 Exceeds Expectations, 2 Meets Expectations, 1 Below Expectations), not from the job description.
+
+Criterion: Unprompted Problem-Finding
+What a strong candidate looks like: The CV explicitly attributes the origin of a piece of work to the candidate's own observation ("after finding," "identified," "independently, when X happened"), not to an assignment, ticket, or manager's request — and this happens more than once across different roles.
+Weight: 30%
+
+Criterion: Institutional Durability
+What a strong candidate looks like: The candidate's self-initiated work is explicitly stated to have been adopted, retained, or continued to be used by others beyond the candidate ("now standard practice," "the team now uses," "retained permanently") — and this recurs more than once, not just a single isolated instance.
+Weight: 30%
+
+Criterion: Externally Corroborated Impact
+What a strong candidate looks like: Claims of impact are backed by something beyond the candidate's own self-description — a quote from someone else, a third-party-given recognition, or an outcome an outside party would visibly confirm (an audit passed, a client renewal, a shipment that departed on schedule despite a crisis) — rather than only internally generated metrics.
+Weight: 25%
+
+Criterion: Ownership Scope in the Candidate's Own Words
+What a strong candidate looks like: The candidate describes running something end-to-end without naming a layer of approval above them for that specific piece of work ("independently," "sole [role] responsible for," "no escalation to management").
+Weight: 15%
+
+(30 + 30 + 25 + 15 = 100%)
+
+
+KARGO HIRING RUBRIC — SENIOR PRODUCT MANAGER (SPM)
+Same four criteria as PM, reweighted and re-anchored toward system/process-level durability and independent judgment with stated downstream consequences — extrapolated from the two most senior Exceeds hires in the data (now Head of Engineering and Ops Lead), since no SPM-specific hire exists in this dataset. This extrapolation is explicit, not hidden.
+
+Criterion: Unprompted Problem-Finding
+What a strong candidate looks like: Same as PM. At SPM level, give extra weight to problems at process/system scale (an indexing strategy, a vendor dependency, a workflow used company-wide) over a single feature — but do not down-score a candidate for lacking system-scale examples if none exist; mark as mixed rather than weak.
+Weight: 25%
+
+Criterion: Institutional Durability, at process/system scale
+What a strong candidate looks like: The adopted practice functions as an ongoing standard that keeps operating without requiring the candidate's continued personal involvement (a recurring review cycle, an on-call rotation, an SOP set adopted "in full") — not just a single artifact or feature.
+Weight: 40%
+
+Criterion: Externally Corroborated Impact
+What a strong candidate looks like: Same as PM.
+Weight: 20%
+
+Criterion: Ownership Scope in the Candidate's Own Words
+What a strong candidate looks like: Same as PM, but the SPM bar requires the described scope to include a decision with a stated downstream consequence — one that had to be lived with, redone under pressure, or that others' work depended on — not ownership of an isolated task. Treat a high score here with caution: it was the weakest clean discriminator in the data (a Meets-rated hire also scores well on this alone).
+Weight: 15%
+
+(25 + 40 + 20 + 15 = 100%)
+
+
+SCORING METHOD (apply to every CV, against both rubrics, regardless of which role was applied for)
+1. Score each criterion 1–5 against its anchors (see full analysis doc), independently of other criteria and other candidates.
+2. Weighted score = (criterion score / 5) x criterion weight.
+3. Sum to a 0–100 total. Keep PM and SPM totals separate.
+4. If a criterion has no evidence in the CV, mark it "not evidenced" — do not score it low by default.
+5. Never award points for title, employer prestige, school, location, or any protected characteristic.
+6. Do not infer ownership or outcomes from vague claims ("responsible for") without concrete supporting detail.
+7. If 2 or more of the 4 criteria are "not evidenced" for a candidate, flag that score as low-confidence and say why.
+8. No shortlist cutoff is defined here — none was provided, and one hasn't been invented.
+
+
+PATTERN CONSIDERED BUT NOT INCLUDED
+Direct prior exposure to logistics/freight/customs operations was present in all 5 Exceeds-rated hires and absent in both Meets-rated hires and the Below-rated hire — a very clean split. It was deliberately left out of this rubric because it overlaps almost exactly with a line already in both job descriptions ("familiarity with operations-heavy industries... is a genuine advantage"), and with only 8 data points it isn't possible to tell whether this is independently predictive or simply reflects that Arjun already screens for it at the interview stage. If you want it added as a fifth criterion, that should be a deliberate choice, not a default — flagging it here rather than baking it in silently.

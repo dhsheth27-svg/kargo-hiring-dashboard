@@ -1,0 +1,105 @@
+// Prisma schema for the Kargo Hiring Dashboard.
+//
+// Provider is SQLite for local/dev simplicity (zero external setup, free,
+// persistent, queryable via `npx prisma studio`). To move to Supabase/Neon
+// for production: change `provider` below to "postgresql" and set
+// DATABASE_URL to the Postgres connection string — the schema itself
+// (models, fields, relations) is unchanged. Prisma's SQLite connector does
+// not support native enums, so role/status/type fields are plain strings
+// constrained by TypeScript union types + zod validation in the app layer
+// (see src/lib/types.ts) instead of DB-level enums; on Postgres you can
+// optionally convert these to real `enum` blocks.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Candidate {
+  id             String   @id @default(cuid())
+  appliedRole    String // "PM" | "SPM"
+  personalDetails String  // JSON string: { name, email, phone } — NEVER sent to any AI call
+  cvContent      String? // PII-stripped CV content (work history, skills, education, achievements)
+  rawFileRef     String? // pointer/path to the original uploaded file
+  status         String   @default("uploaded") // uploaded -> extracted -> scored -> briefed -> drafted -> sent
+  createdAt      DateTime @default(now())
+
+  scores       Score[]
+  roleTotals   CandidateRoleTotal[]
+  briefs       Brief[]
+  draftEmails  DraftEmail[]
+}
+
+model RubricCriterion {
+  id          String  @id @default(cuid())
+  role        String // "PM" | "SPM"
+  name        String
+  description String
+  weight      Float // percentage points, weights per role must sum to 100
+  anchors     String // JSON string: { "1": "...", "2": "...", ... "5": "..." }
+  derived     Boolean @default(false) // true if anchors were derived/extrapolated rather than taken verbatim from rubric.txt
+  order       Int     @default(0)
+
+  scores Score[]
+}
+
+model Score {
+  id             String   @id @default(cuid())
+  candidateId    String
+  candidate      Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  roleScored     String // "PM" | "SPM" — the rubric being applied, independent of appliedRole
+  criterionId    String
+  criterion      RubricCriterion @relation(fields: [criterionId], references: [id], onDelete: Cascade)
+  rawScore       Int? // 1-5, null = "not evidenced"
+  reasoning      String
+  weightedScore  Float? // (rawScore / 5) * weight, null if rawScore is null
+  createdAt      DateTime @default(now())
+
+  @@index([candidateId, roleScored])
+}
+
+model CandidateRoleTotal {
+  id                String   @id @default(cuid())
+  candidateId       String
+  candidate         Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  roleScored        String // "PM" | "SPM"
+  totalScore        Float // 0-100
+  notEvidencedCount Int
+  confidence        String // "normal" | "low"
+  updatedAt         DateTime @updatedAt
+
+  @@unique([candidateId, roleScored])
+}
+
+model Brief {
+  id          String   @id @default(cuid())
+  candidateId String
+  candidate   Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  roleScored  String // "PM" | "SPM"
+  briefText   String
+  generatedAt DateTime @default(now())
+
+  @@unique([candidateId, roleScored])
+}
+
+model DraftEmail {
+  id          String   @id @default(cuid())
+  candidateId String
+  candidate   Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  emailType   String // "invite" | "reject"
+  subject     String
+  body        String // real candidate name substituted in, never a [NAME] placeholder
+  status      String   @default("draft") // "draft" | "sent"
+  sentAt      DateTime?
+  createdAt   DateTime @default(now())
+
+  @@unique([candidateId])
+}
+
+model Setting {
+  key   String @id
+  value String
+}
