@@ -10,19 +10,16 @@ rejections — never automatically, always with an explicit click.
 |---|---|
 | App | Next.js 16 (App Router) + TypeScript + Tailwind |
 | AI | Gemini (`@google/genai`), structured JSON output |
-| Database | SQLite via Prisma 7, driver adapter `@prisma/adapter-better-sqlite3` |
+| Database | Supabase Postgres via Prisma 7, driver adapter `@prisma/adapter-pg` |
 | Email | Resend |
 | PDF parsing | `pdf-parse-fork` |
 
-**Database note:** SQLite was used here for zero-setup local development —
-free, persistent, queryable with `npm run db:studio`. To move to
-Supabase/Neon Postgres for production:
-1. In `prisma/schema.prisma`, change `provider = "sqlite"` to `"postgresql"`.
-2. Install `@prisma/adapter-pg` and swap the adapter in `src/lib/prisma.ts`
-   (and `prisma/seed.ts`) from `PrismaBetterSqlite3` to `PrismaPg`.
-3. Set `DATABASE_URL` in `.env.local` to the Postgres connection string.
-No model/schema changes needed — the structure is designed to be
-provider-agnostic.
+**Database note:** runs on Supabase Postgres (works on Vercel's serverless
+filesystem, unlike SQLite, which doesn't persist there). Use the
+**Session** pooler connection string (port 5432) for `npm run db:migrate`
+locally, and the **Transaction** pooler string (port 6543) for the
+deployed app on Vercel — Supabase's dashboard (Settings → Database →
+Connection string) gives you both.
 
 ## Setup
 

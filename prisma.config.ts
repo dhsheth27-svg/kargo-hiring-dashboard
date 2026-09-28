@@ -6,16 +6,19 @@ import { defineConfig, env } from "prisma/config";
 config({ path: ".env.local" });
 
 // Prisma 7 moved the datasource connection URL out of schema.prisma and into
-// this config file. To move from local SQLite to Supabase/Neon Postgres for
-// production: change the `provider` in prisma/schema.prisma to "postgresql"
-// and set DATABASE_URL below (via env) to the Postgres connection string —
-// nothing else in this file needs to change.
+// this config file — and dropped the old `directUrl` field. This file is
+// only used by the CLI (generate/migrate/studio), never by the running app
+// (src/lib/prisma.ts builds its own adapter), so it's safe to point it at
+// DIRECT_URL: Supabase's connection pooler (DATABASE_URL, transaction mode)
+// doesn't support the prepared statements schema migrations need, but a
+// direct connection does. The app itself uses the pooled DATABASE_URL at
+// runtime, which is what you want on Vercel's serverless functions.
 export default defineConfig({
   schema: "prisma/schema.prisma",
   migrations: {
     path: "prisma/migrations",
   },
   datasource: {
-    url: env("DATABASE_URL"),
+    url: env("DIRECT_URL"),
   },
 });

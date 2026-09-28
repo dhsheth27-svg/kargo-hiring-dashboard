@@ -1,21 +1,18 @@
 // Prisma schema for the Kargo Hiring Dashboard.
 //
-// Provider is SQLite for local/dev simplicity (zero external setup, free,
-// persistent, queryable via `npx prisma studio`). To move to Supabase/Neon
-// for production: change `provider` below to "postgresql" and set
-// DATABASE_URL to the Postgres connection string — the schema itself
-// (models, fields, relations) is unchanged. Prisma's SQLite connector does
-// not support native enums, so role/status/type fields are plain strings
-// constrained by TypeScript union types + zod validation in the app layer
-// (see src/lib/types.ts) instead of DB-level enums; on Postgres you can
-// optionally convert these to real `enum` blocks.
+// Provider is Postgres (Supabase). Role/status/type fields are plain
+// strings constrained by TypeScript union types + zod validation in the
+// app layer (see src/lib/types.ts) rather than DB-level enums — this
+// schema started on SQLite (which has no native enum support) and keeping
+// strings avoids a data migration; convert to real `enum` blocks later if
+// you want DB-level constraints.
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
 }
 
 model Candidate {
