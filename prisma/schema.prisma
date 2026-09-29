@@ -20,7 +20,8 @@ model Candidate {
   appliedRole    String // "PM" | "SPM"
   personalDetails String  // JSON string: { name, email, phone } — NEVER sent to any AI call
   cvContent      String? // PII-stripped CV content (work history, skills, education, achievements)
-  rawFileRef     String? // pointer/path to the original uploaded file
+  rawFileRef     String? // original uploaded filename (the bytes themselves are processed
+                         // in-memory and discarded, never persisted to disk — see pipeline.ts)
   status         String   @default("uploaded") // uploaded -> extracted -> scored -> briefed -> drafted -> sent
   createdAt      DateTime @default(now())
 

@@ -10,17 +10,19 @@ import type { Role } from "./types";
  * extract -> strip PII -> score against both rubrics -> recompute
  * pool-wide shortlist/briefs/drafts. Synchronous/awaited by the caller —
  * this is an internal tool with low volume, so no queue is needed.
+ *
+ * Takes the uploaded file's bytes directly (not a disk path): serverless
+ * runtimes like Vercel have a read-only filesystem outside /tmp, and
+ * nothing here needs the file again after this one pass, so there's no
+ * reason to persist it to disk at all — in-memory for the duration of
+ * this request is enough both locally and in production.
  */
-export async function runPipelineForCandidate(candidateId: string) {
-  const candidate = await prisma.candidate.findUniqueOrThrow({
-    where: { id: candidateId },
-  });
-
+export async function runPipelineForCandidate(
+  candidateId: string,
+  fileBuffer: Buffer,
+  filename: string
+) {
   // 1. Extraction — deterministic, AI-free. Raw file never touches Gemini.
-  const fileBuffer = await (await import("fs/promises")).readFile(
-    candidate.rawFileRef!
-  );
-  const filename = candidate.rawFileRef!.split("/").pop() ?? "cv";
   const rawText = await extractTextFromFile(fileBuffer, filename);
   const { personalDetails, cvContent } = extractAndStrip(rawText);
 

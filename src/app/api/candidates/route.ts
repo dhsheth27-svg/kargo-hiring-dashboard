@@ -1,12 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import path from "path";
-import { randomUUID } from "crypto";
-import { writeFile, mkdir } from "fs/promises";
 import { prisma } from "@/lib/prisma";
 import { runPipelineForCandidate } from "@/lib/pipeline";
 import { ROLES } from "@/lib/types";
-
-const UPLOAD_DIR = path.join(process.cwd(), "data", "uploads");
 
 export async function GET(req: NextRequest) {
   const appliedRole = req.nextUrl.searchParams.get("appliedRole");
@@ -48,24 +43,19 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  await mkdir(UPLOAD_DIR, { recursive: true });
-  const ext = path.extname(file.name) || ".pdf";
-  const storedName = `${randomUUID()}${ext}`;
-  const storedPath = path.join(UPLOAD_DIR, storedName);
   const buffer = Buffer.from(await file.arrayBuffer());
-  await writeFile(storedPath, buffer);
 
   const candidate = await prisma.candidate.create({
     data: {
       appliedRole,
       personalDetails: JSON.stringify({ name: "", email: "", phone: null }),
-      rawFileRef: storedPath,
+      rawFileRef: file.name,
       status: "uploaded",
     },
   });
 
   try {
-    await runPipelineForCandidate(candidate.id);
+    await runPipelineForCandidate(candidate.id, buffer, file.name);
   } catch (err) {
     console.error(`Pipeline failed for candidate ${candidate.id}:`, err);
     return NextResponse.json(
