@@ -35,6 +35,16 @@ export async function runPipelineForCandidate(
     },
   });
 
+  // Guard against scanned/image-only PDFs or other near-empty extractions:
+  // scoring almost-blank content would silently produce a low, misleading
+  // score (everything "not evidenced") instead of surfacing that this file
+  // needs a different format or a manual look.
+  if (cvContent.trim().length < 50) {
+    throw new Error(
+      `Extracted only ${cvContent.trim().length} characters of text — this file may be a scanned/image-based PDF rather than text, or otherwise unreadable. Try re-exporting it as a text-based PDF.`
+    );
+  }
+
   // 2. Scoring — against BOTH rubrics, independent of applied role.
   const criteria = await prisma.rubricCriterion.findMany({
     orderBy: { order: "asc" },
