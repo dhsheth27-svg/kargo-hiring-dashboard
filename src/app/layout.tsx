@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import NavBar from "@/components/NavBar";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -23,16 +24,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-neutral-950 text-neutral-100">
-        <nav className="border-b border-neutral-800 px-6 py-3 flex items-center gap-6 text-sm">
-          <span className="font-semibold text-neutral-300">Kargo Hiring</span>
-          <a href="/upload" className="text-neutral-400 hover:text-neutral-100">
-            Upload
-          </a>
-          <a href="/dashboard" className="text-neutral-400 hover:text-neutral-100">
-            Dashboard
-          </a>
-        </nav>
+      <body className="min-h-full flex flex-col text-neutral-100">
+        <NavBar />
         <main className="flex-1">{children}</main>
       </body>
     </html>

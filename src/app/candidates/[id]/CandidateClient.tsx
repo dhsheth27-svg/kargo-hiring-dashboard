@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface ScoreRow {
   criterion: string;
@@ -36,26 +37,65 @@ interface CandidateDetail {
   } | null;
 }
 
+function scoreColor(score: number) {
+  if (score >= 4) return "var(--accent-emerald)";
+  if (score >= 3) return "var(--accent-cyan)";
+  if (score >= 2) return "var(--accent-amber)";
+  return "var(--accent-rose)";
+}
+
+function totalColor(score: number) {
+  if (score >= 80) return "var(--accent-emerald)";
+  if (score >= 60) return "var(--accent-cyan)";
+  if (score >= 40) return "var(--accent-amber)";
+  return "var(--accent-rose)";
+}
+
 function ScoreTable({ rows }: { rows: ScoreRow[] }) {
   return (
     <div className="space-y-3">
-      {rows.map((r) => (
-        <div key={r.criterion} className="border border-neutral-800 rounded-md p-3">
-          <div className="flex items-center justify-between mb-1">
+      {rows.map((r, i) => (
+        <motion.div
+          key={r.criterion}
+          initial={{ opacity: 0, x: -8 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: i * 0.06 }}
+          className="glass-card rounded-xl p-4"
+        >
+          <div className="flex items-center justify-between mb-2">
             <span className="text-sm font-medium">{r.criterion}</span>
             <span className="text-xs text-neutral-500">weight {r.weight}%</span>
           </div>
-          <div className="flex items-center gap-2 mb-1">
+          <div className="flex items-center gap-3 mb-2">
             {r.rawScore === null ? (
-              <span className="text-xs px-2 py-0.5 rounded bg-neutral-800 text-neutral-400">
+              <span className="text-xs px-2.5 py-1 rounded-full bg-white/5 text-neutral-400 border border-white/10">
                 not evidenced
               </span>
             ) : (
-              <span className="text-sm font-semibold">{r.rawScore}/5</span>
+              <div className="flex items-center gap-2 flex-1">
+                <div className="flex gap-1">
+                  {[1, 2, 3, 4, 5].map((n) => (
+                    <motion.span
+                      key={n}
+                      initial={{ scaleY: 0 }}
+                      animate={{ scaleY: 1 }}
+                      transition={{ delay: i * 0.06 + n * 0.05 }}
+                      className="h-4 w-2 rounded-sm origin-bottom"
+                      style={{
+                        background:
+                          n <= (r.rawScore ?? 0) ? scoreColor(r.rawScore ?? 0) : "rgba(255,255,255,0.08)",
+                      }}
+                    />
+                  ))}
+                </div>
+                <span className="text-sm font-semibold" style={{ color: scoreColor(r.rawScore) }}>
+                  {r.rawScore}/5
+                </span>
+              </div>
             )}
           </div>
-          <p className="text-xs text-neutral-400">{r.reasoning}</p>
-        </div>
+          <p className="text-xs text-neutral-400 leading-relaxed">{r.reasoning}</p>
+        </motion.div>
       ))}
     </div>
   );
@@ -120,125 +160,202 @@ export default function CandidateClient({ id }: { id: string }) {
     }
   }
 
-  if (!data) return <div className="max-w-4xl mx-auto px-6 py-10 text-neutral-400">Loading…</div>;
+  if (!data)
+    return (
+      <div className="max-w-4xl mx-auto px-6 py-12">
+        <div className="h-24 rounded-xl glass-card shimmer mb-6" />
+        <div className="h-32 rounded-xl glass-card shimmer" />
+      </div>
+    );
 
   const brief = data.briefs.find((b) => b.roleScored === data.appliedRole);
   const appliedTotal = data.totals.find((t) => t.roleScored === data.appliedRole);
+  const score = appliedTotal ? Math.round(appliedTotal.totalScore) : null;
 
   return (
-    <div className="max-w-4xl mx-auto px-6 py-10">
-      <Link href="/dashboard" className="text-sm text-neutral-500 hover:text-neutral-300">
+    <div className="max-w-4xl mx-auto px-6 py-12">
+      <Link
+        href="/dashboard"
+        className="text-sm text-neutral-500 hover:text-[var(--accent-cyan)] transition-colors"
+      >
         ← Back to dashboard
       </Link>
 
-      <div className="flex items-start justify-between mt-4 mb-8">
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex items-start justify-between mt-5 mb-8 glass-card rounded-2xl p-6"
+      >
         <div>
-          <h1 className="text-2xl font-semibold">{data.name}</h1>
-          <p className="text-sm text-neutral-500">
+          <h1 className="text-2xl font-bold gradient-text">{data.name}</h1>
+          <p className="text-sm text-neutral-400 mt-1">
             {data.email} {data.phone ? `· ${data.phone}` : ""}
           </p>
-          <p className="text-sm text-neutral-400 mt-1">
+          <p className="text-sm text-neutral-500 mt-1">
             Applied for {data.appliedRole} · status: {data.status}
           </p>
         </div>
-        {appliedTotal && (
-          <div className="text-right">
-            <div className="text-3xl font-bold">{Math.round(appliedTotal.totalScore)}</div>
-            <div className="text-xs text-neutral-500">/ 100 ({data.appliedRole})</div>
-            {appliedTotal.confidence === "low" && (
+        {score !== null && (
+          <div className="text-right shrink-0">
+            <div
+              className="h-20 w-20 rounded-full flex items-center justify-center"
+              style={{
+                background: `conic-gradient(${totalColor(score)} ${score * 3.6}deg, rgba(255,255,255,0.06) 0deg)`,
+              }}
+            >
+              <div className="h-16 w-16 rounded-full bg-[var(--surface)] flex flex-col items-center justify-center">
+                <span className="text-2xl font-bold" style={{ color: totalColor(score) }}>
+                  {score}
+                </span>
+              </div>
+            </div>
+            <div className="text-xs text-neutral-500 mt-1">/ 100 ({data.appliedRole})</div>
+            {appliedTotal?.confidence === "low" && (
               <div className="text-xs text-amber-400 mt-1">
-                low confidence — {appliedTotal.notEvidencedCount} criteria not evidenced
+                low confidence — {appliedTotal.notEvidencedCount} not evidenced
               </div>
             )}
           </div>
         )}
-      </div>
+      </motion.div>
 
-      {brief && (
-        <div className="mb-8 p-4 rounded-md bg-blue-950/30 border border-blue-900">
-          <div className="text-xs font-medium text-blue-300 mb-1">
-            Interview brief ({data.appliedRole} shortlist)
-          </div>
-          <p className="text-sm text-blue-100">{brief.briefText}</p>
-        </div>
-      )}
+      <AnimatePresence>
+        {brief && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-8 p-5 rounded-2xl relative overflow-hidden"
+            style={{
+              background:
+                "linear-gradient(135deg, rgba(139,92,246,0.12), rgba(34,211,238,0.08))",
+              border: "1px solid rgba(139,92,246,0.25)",
+            }}
+          >
+            <div className="text-xs font-semibold gradient-text mb-2 uppercase tracking-wide">
+              Interview brief · {data.appliedRole} shortlist
+            </div>
+            <p className="text-sm text-neutral-200 leading-relaxed">{brief.briefText}</p>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <div className="mb-8">
         <div className="flex gap-2 mb-4">
-          {(["PM", "SPM"] as const).map((r) => (
-            <button
-              key={r}
-              onClick={() => setTab(r)}
-              className={`px-3 py-1.5 rounded-md text-sm border ${
-                tab === r
-                  ? "bg-neutral-100 text-neutral-900 border-neutral-100"
-                  : "border-neutral-700 text-neutral-300"
-              }`}
-            >
-              {r} rubric
-              {r === data.appliedRole && (
-                <span className="ml-1 text-xs opacity-70">(applied)</span>
-              )}
-            </button>
-          ))}
+          {(["PM", "SPM"] as const).map((r) => {
+            const active = tab === r;
+            return (
+              <button
+                key={r}
+                onClick={() => setTab(r)}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                  active ? "text-white" : "glass-card text-neutral-300 hover:border-white/20"
+                }`}
+                style={
+                  active
+                    ? { background: "linear-gradient(135deg, var(--accent-violet), var(--accent-cyan))" }
+                    : undefined
+                }
+              >
+                {r} rubric
+                {r === data.appliedRole && (
+                  <span className="ml-1 text-xs opacity-70">(applied)</span>
+                )}
+              </button>
+            );
+          })}
         </div>
-        <ScoreTable rows={data.scoresByRole[tab]} />
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={tab}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <ScoreTable rows={data.scoresByRole[tab]} />
+          </motion.div>
+        </AnimatePresence>
       </div>
 
       {data.draft && (
-        <div className="border border-neutral-800 rounded-md p-4">
-          <div className="flex items-center justify-between mb-3">
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="glass-card rounded-2xl p-5"
+        >
+          <div className="flex items-center justify-between mb-4">
             <span className="text-sm font-medium">
               Draft email —{" "}
-              <span className={data.draft.emailType === "invite" ? "text-green-400" : "text-neutral-400"}>
+              <span
+                className={
+                  data.draft.emailType === "invite"
+                    ? "text-[var(--accent-emerald)]"
+                    : "text-neutral-400"
+                }
+              >
                 {data.draft.emailType === "invite" ? "interview invite" : "rejection"}
               </span>
             </span>
             {data.draft.status === "sent" && (
-              <span className="text-xs px-2 py-0.5 rounded bg-green-900/50 text-green-300">
+              <span className="text-xs px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/20">
                 sent {data.draft.sentAt ? new Date(data.draft.sentAt).toLocaleString() : ""}
               </span>
             )}
           </div>
 
-          <label className="block text-xs text-neutral-500 mb-1">Subject</label>
+          <label className="block text-xs text-neutral-500 mb-1.5">Subject</label>
           <input
             value={subject}
             onChange={(e) => setSubject(e.target.value)}
             disabled={data.draft.status === "sent"}
-            className="w-full mb-3 px-3 py-2 rounded-md bg-neutral-900 border border-neutral-700 text-sm disabled:opacity-50"
+            className="w-full mb-4 px-3.5 py-2.5 rounded-lg bg-black/20 border border-white/10 text-sm focus:outline-none focus:border-[var(--accent-violet)]/50 disabled:opacity-50 transition-colors"
           />
 
-          <label className="block text-xs text-neutral-500 mb-1">Body</label>
+          <label className="block text-xs text-neutral-500 mb-1.5">Body</label>
           <textarea
             value={body}
             onChange={(e) => setBody(e.target.value)}
             disabled={data.draft.status === "sent"}
             rows={10}
-            className="w-full mb-3 px-3 py-2 rounded-md bg-neutral-900 border border-neutral-700 text-sm disabled:opacity-50"
+            className="w-full mb-4 px-3.5 py-2.5 rounded-lg bg-black/20 border border-white/10 text-sm focus:outline-none focus:border-[var(--accent-violet)]/50 disabled:opacity-50 transition-colors"
           />
 
-          {error && <p className="text-sm text-red-400 mb-3">{error}</p>}
+          {error && (
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="text-sm text-[var(--accent-rose)] mb-4"
+            >
+              {error}
+            </motion.p>
+          )}
 
           {data.draft.status !== "sent" && (
             <div className="flex gap-3">
-              <button
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
                 onClick={saveDraft}
                 disabled={saving || sending}
-                className="px-4 py-2 rounded-md border border-neutral-700 text-sm disabled:opacity-40"
+                className="px-4 py-2.5 rounded-lg glass-card text-sm hover:border-white/20 disabled:opacity-40 transition-colors"
               >
                 {saving ? "Saving…" : "Save draft"}
-              </button>
-              <button
+              </motion.button>
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
                 onClick={confirmSend}
                 disabled={sending}
-                className="px-4 py-2 rounded-md bg-green-600 text-white text-sm font-medium disabled:opacity-40"
+                className="px-4 py-2.5 rounded-lg text-white text-sm font-semibold disabled:opacity-40"
+                style={{
+                  background:
+                    "linear-gradient(135deg, var(--accent-emerald), var(--accent-cyan))",
+                }}
               >
                 {sending ? "Sending…" : `Confirm & send to ${data.email}`}
-              </button>
+              </motion.button>
             </div>
           )}
-        </div>
+        </motion.div>
       )}
     </div>
   );
