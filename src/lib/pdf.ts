@@ -1,3 +1,14 @@
+// PDF text extraction can surface stray control characters (most commonly
+// NUL, \x00) from malformed embedded fonts/streams — invisible in normal
+// use, but Postgres's UTF8 column type rejects them outright (error 22021),
+// which would otherwise crash the whole pipeline on an otherwise-fine file.
+// Strips all C0 control characters except the ones we actually want to
+// keep for line structure (\n, \r, \t).
+function stripControlCharacters(text: string): string {
+  // eslint-disable-next-line no-control-regex
+  return text.replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g, "");
+}
+
 export async function extractTextFromFile(
   buffer: Buffer,
   filename: string
@@ -12,8 +23,8 @@ export async function extractTextFromFile(
     const { extractText, getDocumentProxy } = await import("unpdf");
     const pdf = await getDocumentProxy(new Uint8Array(buffer));
     const { text } = await extractText(pdf, { mergePages: true });
-    return text;
+    return stripControlCharacters(text);
   }
   // Plain text / markdown fallback (.txt, .md)
-  return buffer.toString("utf-8");
+  return stripControlCharacters(buffer.toString("utf-8"));
 }
