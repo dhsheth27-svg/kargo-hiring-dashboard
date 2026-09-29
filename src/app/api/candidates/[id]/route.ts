@@ -10,10 +10,13 @@ export async function GET(
   const candidate = await prisma.candidate.findUnique({
     where: { id },
     include: {
+      role: true,
       scores: { include: { criterion: true }, orderBy: { criterion: { order: "asc" } } },
       roleTotals: true,
       briefs: true,
       draftEmails: true,
+      notes: { orderBy: { createdAt: "desc" } },
+      activities: { orderBy: { createdAt: "desc" } },
     },
   });
 
@@ -27,10 +30,20 @@ export async function GET(
     id: candidate.id,
     appliedRole: candidate.appliedRole,
     status: candidate.status,
+    reviewStatus: candidate.reviewStatus,
+    recruiterRating: candidate.recruiterRating,
     createdAt: candidate.createdAt,
     name: personalDetails.name,
     email: personalDetails.email,
     phone: personalDetails.phone,
+    cvContent: candidate.cvContent,
+    role: {
+      id: candidate.role.id,
+      title: candidate.role.title,
+      rubricRole: candidate.role.rubricRole,
+      requiredSkills: candidate.role.requiredSkills,
+      preferredSkills: candidate.role.preferredSkills,
+    },
     totals: candidate.roleTotals,
     scoresByRole: {
       PM: candidate.scores
@@ -60,11 +73,15 @@ export async function GET(
       ? {
           id: candidate.draftEmails[0].id,
           emailType: candidate.draftEmails[0].emailType,
+          templateType: candidate.draftEmails[0].templateType,
           subject: candidate.draftEmails[0].subject,
           body: candidate.draftEmails[0].body,
           status: candidate.draftEmails[0].status,
           sentAt: candidate.draftEmails[0].sentAt,
+          failedReason: candidate.draftEmails[0].failedReason,
         }
       : null,
+    notes: candidate.notes,
+    activities: candidate.activities,
   });
 }

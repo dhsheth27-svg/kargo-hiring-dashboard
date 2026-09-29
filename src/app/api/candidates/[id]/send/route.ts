@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { sendEmail } from "@/lib/resend";
+import { logActivity } from "@/lib/activity";
 
 // The ONLY place an email actually goes out — requires an explicit click
 // from the founder on this specific candidate. Never called automatically.
@@ -42,22 +43,26 @@ export async function POST(
       body: draft.body,
     });
   } catch (err) {
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Send failed." },
-      { status: 502 }
-    );
+    const reason = err instanceof Error ? err.message : "Send failed.";
+    await prisma.draftEmail.update({
+      where: { candidateId: id },
+      data: { status: "failed", failedReason: reason },
+    });
+    await logActivity(id, "email_failed", `Send failed: ${reason}`);
+    return NextResponse.json({ error: reason }, { status: 502 });
   }
 
   // Only mark as sent AFTER Resend confirms delivery — never optimistically.
   const sentAt = new Date();
   await prisma.draftEmail.update({
     where: { candidateId: id },
-    data: { status: "sent", sentAt },
+    data: { status: "sent", sentAt, failedReason: null },
   });
   await prisma.candidate.update({
     where: { id },
     data: { status: "sent" },
   });
+  await logActivity(id, "email_sent", `${draft.templateType.replace("_", " ")} email sent to ${personalDetails.email}.`);
 
   return NextResponse.json({ sent: true, resendId: resendResult.id, sentAt });
 }

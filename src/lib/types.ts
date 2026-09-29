@@ -19,8 +19,45 @@ export type Confidence = (typeof CONFIDENCE)[number];
 export const EMAIL_TYPES = ["invite", "reject"] as const;
 export type EmailType = (typeof EMAIL_TYPES)[number];
 
-export const EMAIL_STATUSES = ["draft", "sent"] as const;
+export const EMAIL_STATUSES = ["draft", "sent", "failed"] as const;
 export type EmailStatus = (typeof EMAIL_STATUSES)[number];
+
+export const TEMPLATE_TYPES = ["invite", "request_info", "update", "reject"] as const;
+export type TemplateType = (typeof TEMPLATE_TYPES)[number];
+export const TEMPLATE_LABELS: Record<TemplateType, string> = {
+  invite: "Interview invitation",
+  request_info: "Request more information",
+  update: "Application update",
+  reject: "Rejection",
+};
+
+export const REVIEW_STATUSES = [
+  "needs_review",
+  "in_review",
+  "shortlisted",
+  "declined",
+] as const;
+export type ReviewStatus = (typeof REVIEW_STATUSES)[number];
+export const REVIEW_STATUS_LABELS: Record<ReviewStatus, string> = {
+  needs_review: "Needs review",
+  in_review: "In review",
+  shortlisted: "Shortlisted",
+  declined: "Declined",
+};
+
+export const ROLE_POSTING_STATUSES = ["draft", "active", "closed"] as const;
+export type RolePostingStatus = (typeof ROLE_POSTING_STATUSES)[number];
+
+export const ACTIVITY_TYPES = [
+  "uploaded",
+  "scored",
+  "status_changed",
+  "rating_changed",
+  "note_added",
+  "email_sent",
+  "email_failed",
+] as const;
+export type ActivityType = (typeof ACTIVITY_TYPES)[number];
 
 export interface PersonalDetails {
   name: string;

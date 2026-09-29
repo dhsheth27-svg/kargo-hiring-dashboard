@@ -231,3 +231,47 @@ Return structured JSON with subject and body.`;
 
   return generateJson(prompt, EMAIL_SCHEMA);
 }
+
+export async function draftRequestInfoEmail(params: {
+  cvContent: string;
+  role: "PM" | "SPM";
+}): Promise<{ subject: string; body: string }> {
+  const prompt = `Draft a short, polite email from Arjun, the founder of Kargo (a Series A logistics SaaS company), asking a ${params.role} candidate for a bit more information before he can move forward with their application.
+
+Requirements:
+- Warm and brief. Reference one concrete gap or ambiguity plausibly suggested by the CV content below (e.g. an unclear date range, a role that isn't fully explained) — phrase it as a genuine, specific question, not a generic "tell me more about yourself."
+- Make clear this is a normal part of reviewing the application, not a red flag.
+- Signed as Arjun.
+- Use the literal token {{NAME}} wherever the candidate's name belongs.
+
+CANDIDATE CV CONTENT (personal details already removed):
+"""
+${params.cvContent}
+"""
+
+Return structured JSON with subject and body.`;
+
+  return generateJson(prompt, EMAIL_SCHEMA);
+}
+
+export async function draftUpdateEmail(params: {
+  cvContent: string;
+  role: "PM" | "SPM";
+}): Promise<{ subject: string; body: string }> {
+  const prompt = `Draft a short, warm status-update email from Arjun, the founder of Kargo (a Series A logistics SaaS company), to a ${params.role} candidate whose application is still being reviewed — no decision has been made yet.
+
+Requirements:
+- Warm and brief. Let them know their application is still under active review and there's no update yet, without committing to a specific timeline.
+- Thank them for their patience.
+- Signed as Arjun.
+- Use the literal token {{NAME}} wherever the candidate's name belongs.
+
+CANDIDATE CV CONTENT (personal details already removed, for tone context only):
+"""
+${params.cvContent}
+"""
+
+Return structured JSON with subject and body.`;
+
+  return generateJson(prompt, EMAIL_SCHEMA);
+}

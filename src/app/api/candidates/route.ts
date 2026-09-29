@@ -1,13 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { runPipelineForCandidate } from "@/lib/pipeline";
-import { ROLES } from "@/lib/types";
 
 export async function GET(req: NextRequest) {
-  const appliedRole = req.nextUrl.searchParams.get("appliedRole");
+  const roleId = req.nextUrl.searchParams.get("roleId");
 
   const candidates = await prisma.candidate.findMany({
-    where: appliedRole ? { appliedRole } : undefined,
+    where: roleId ? { roleId } : undefined,
     orderBy: { createdAt: "desc" },
     include: { roleTotals: true, briefs: true, draftEmails: true },
   });
@@ -15,7 +14,9 @@ export async function GET(req: NextRequest) {
   const shaped = candidates.map((c) => ({
     id: c.id,
     appliedRole: c.appliedRole,
+    roleId: c.roleId,
     status: c.status,
+    reviewStatus: c.reviewStatus,
     createdAt: c.createdAt,
     name: JSON.parse(c.personalDetails).name,
     totals: c.roleTotals,
@@ -31,23 +32,26 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const formData = await req.formData();
   const file = formData.get("file") as File | null;
-  const appliedRole = formData.get("appliedRole") as string | null;
+  const roleId = formData.get("roleId") as string | null;
 
   if (!file) {
     return NextResponse.json({ error: "No file provided." }, { status: 400 });
   }
-  if (!appliedRole || !ROLES.includes(appliedRole as (typeof ROLES)[number])) {
-    return NextResponse.json(
-      { error: "appliedRole must be PM or SPM." },
-      { status: 400 }
-    );
+  if (!roleId) {
+    return NextResponse.json({ error: "roleId is required." }, { status: 400 });
+  }
+
+  const role = await prisma.role.findUnique({ where: { id: roleId } });
+  if (!role) {
+    return NextResponse.json({ error: "Role not found." }, { status: 404 });
   }
 
   const buffer = Buffer.from(await file.arrayBuffer());
 
   const candidate = await prisma.candidate.create({
     data: {
-      appliedRole,
+      roleId,
+      appliedRole: role.rubricRole,
       personalDetails: JSON.stringify({ name: "", email: "", phone: null }),
       rawFileRef: file.name,
       status: "uploaded",

@@ -2,7 +2,8 @@ import { prisma } from "./prisma";
 import { extractTextFromFile } from "./pdf";
 import { extractAndStrip } from "./extraction";
 import { scoreCriterion } from "./gemini";
-import { recomputeShortlistAndDrafts } from "./ranking";
+import { recomputeShortlistAndDraftsForRole } from "./ranking";
+import { logActivity } from "./activity";
 import type { Role } from "./types";
 
 /**
@@ -34,6 +35,7 @@ export async function runPipelineForCandidate(
       status: "extracted",
     },
   });
+  await logActivity(candidateId, "uploaded", `CV uploaded and extracted (${personalDetails.name}).`);
 
   // Guard against scanned/image-only PDFs or other near-empty extractions:
   // scoring almost-blank content would silently produce a low, misleading
@@ -113,7 +115,23 @@ export async function runPipelineForCandidate(
     data: { status: "scored" },
   });
 
-  // 3. Recompute shortlist-based briefs + applied-role-based drafts across
-  //    the whole pool (a new candidate can shift who's in the top N).
-  await recomputeShortlistAndDrafts();
+  const pmTotal = await prisma.candidateRoleTotal.findUnique({
+    where: { candidateId_roleScored: { candidateId, roleScored: "PM" } },
+  });
+  const spmTotal = await prisma.candidateRoleTotal.findUnique({
+    where: { candidateId_roleScored: { candidateId, roleScored: "SPM" } },
+  });
+  await logActivity(
+    candidateId,
+    "scored",
+    `Scored: PM ${pmTotal ? Math.round(pmTotal.totalScore) : "—"}/100, SPM ${spmTotal ? Math.round(spmTotal.totalScore) : "—"}/100.`
+  );
+
+  // 3. Recompute shortlist-based briefs + rank-based drafts, scoped to this
+  //    candidate's role posting (a new candidate can shift who's in the
+  //    top N for THAT posting only).
+  const candidate = await prisma.candidate.findUniqueOrThrow({
+    where: { id: candidateId },
+  });
+  await recomputeShortlistAndDraftsForRole(candidate.roleId);
 }

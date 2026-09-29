@@ -1,5 +1,10 @@
 import { prisma } from "./prisma";
-import { generateBrief, draftInviteEmail, draftRejectEmail } from "./gemini";
+import {
+  generateBrief,
+  draftInviteEmail,
+  draftRejectEmail,
+} from "./gemini";
+import { logActivity } from "./activity";
 import type { Role } from "./types";
 
 export async function getShortlistSize(): Promise<number> {
@@ -11,40 +16,47 @@ export async function getShortlistSize(): Promise<number> {
 }
 
 /**
- * Recomputes rank-based shortlist membership (briefs) and applied-role-based
- * invite/reject drafts across the WHOLE candidate pool. This must re-run
- * after every new candidate is scored, because a rank-based cutoff (top N)
- * can only be evaluated relative to the current pool — a new strong
- * candidate can bump an existing one out of (or into) the shortlist.
+ * Recomputes rank-based shortlist membership (briefs) and invite/reject
+ * drafts for every applicant to ONE role posting. Ranking is scoped per
+ * Role (job posting), not globally by rubric — two different postings that
+ * both happen to use the PM rubric each get their own top-N, since a
+ * recruiter shortlists candidates for THIS job, not across every PM
+ * posting ever created. Must re-run after every new candidate in this
+ * role is scored, because a rank-based cutoff can only be evaluated
+ * relative to the current pool for that role.
  */
-export async function recomputeShortlistAndDrafts() {
+export async function recomputeShortlistAndDraftsForRole(roleId: string) {
+  const role = await prisma.role.findUniqueOrThrow({ where: { id: roleId } });
   const shortlistSize = await getShortlistSize();
+  const rubricRole = role.rubricRole as Role;
 
-  for (const role of ["PM", "SPM"] as Role[]) {
-    await recomputeBriefsForRole(role, shortlistSize);
-  }
-
-  const candidates = await prisma.candidate.findMany({
-    select: { id: true, appliedRole: true },
-  });
-  for (const c of candidates) {
-    await recomputeDraftForCandidate(c.id, c.appliedRole as Role, shortlistSize);
-  }
-}
-
-async function recomputeBriefsForRole(role: Role, shortlistSize: number) {
   const totals = await prisma.candidateRoleTotal.findMany({
-    where: { roleScored: role },
+    where: {
+      roleScored: rubricRole,
+      candidate: { roleId },
+    },
     orderBy: { totalScore: "desc" },
   });
   const topIds = new Set(totals.slice(0, shortlistSize).map((t) => t.candidateId));
 
+  await recomputeBriefs(rubricRole, roleId, topIds);
+
+  for (let i = 0; i < totals.length; i++) {
+    const desiredType = i < shortlistSize ? "invite" : "reject";
+    await recomputeDraftForCandidate(totals[i].candidateId, rubricRole, desiredType);
+  }
+}
+
+async function recomputeBriefs(
+  rubricRole: Role,
+  roleId: string,
+  topIds: Set<string>
+) {
   const existingBriefs = await prisma.brief.findMany({
-    where: { roleScored: role },
+    where: { roleScored: rubricRole, candidate: { roleId } },
   });
   const existingIds = new Set(existingBriefs.map((b) => b.candidateId));
 
-  // Remove briefs for candidates who fell out of the top N.
   const toRemove = existingBriefs.filter((b) => !topIds.has(b.candidateId));
   if (toRemove.length > 0) {
     await prisma.brief.deleteMany({
@@ -52,7 +64,6 @@ async function recomputeBriefsForRole(role: Role, shortlistSize: number) {
     });
   }
 
-  // Generate briefs for candidates newly in the top N.
   for (const candidateId of topIds) {
     if (existingIds.has(candidateId)) continue;
 
@@ -62,14 +73,14 @@ async function recomputeBriefsForRole(role: Role, shortlistSize: number) {
     if (!candidate?.cvContent) continue;
 
     const scores = await prisma.score.findMany({
-      where: { candidateId, roleScored: role },
+      where: { candidateId, roleScored: rubricRole },
       include: { criterion: true },
     });
     if (scores.length === 0) continue;
 
     const result = await generateBrief({
       cvContent: candidate.cvContent,
-      role,
+      role: rubricRole,
       scoredCriteria: scores.map((s) => ({
         name: s.criterion.name,
         rawScore: s.rawScore,
@@ -78,12 +89,8 @@ async function recomputeBriefsForRole(role: Role, shortlistSize: number) {
     });
 
     await prisma.brief.upsert({
-      where: { candidateId_roleScored: { candidateId, roleScored: role } },
-      create: {
-        candidateId,
-        roleScored: role,
-        briefText: result.brief_text,
-      },
+      where: { candidateId_roleScored: { candidateId, roleScored: rubricRole } },
+      create: { candidateId, roleScored: rubricRole, briefText: result.brief_text },
       update: { briefText: result.brief_text },
     });
 
@@ -91,45 +98,31 @@ async function recomputeBriefsForRole(role: Role, shortlistSize: number) {
       where: { id: candidateId },
       data: { status: "briefed" },
     });
+    await logActivity(candidateId, "scored", "Entered the shortlist — interview brief generated.");
   }
 }
 
 async function recomputeDraftForCandidate(
   candidateId: string,
-  appliedRole: Role,
-  shortlistSize: number
+  rubricRole: Role,
+  desiredType: "invite" | "reject"
 ) {
-  const totals = await prisma.candidateRoleTotal.findMany({
-    where: { roleScored: appliedRole },
-    orderBy: { totalScore: "desc" },
-  });
-  const rank = totals.findIndex((t) => t.candidateId === candidateId);
-  if (rank === -1) return; // not yet scored for their applied role
-
-  const desiredType = rank < shortlistSize ? "invite" : "reject";
-
-  const existing = await prisma.draftEmail.findUnique({
-    where: { candidateId },
-  });
+  const existing = await prisma.draftEmail.findUnique({ where: { candidateId } });
 
   // Never touch an already-sent email.
   if (existing?.status === "sent") return;
   // Already drafted with the correct type — leave the founder's edits alone.
   if (existing && existing.emailType === desiredType) return;
 
-  const candidate = await prisma.candidate.findUnique({
-    where: { id: candidateId },
-  });
+  const candidate = await prisma.candidate.findUnique({ where: { id: candidateId } });
   if (!candidate?.cvContent) return;
 
   const result =
     desiredType === "invite"
-      ? await draftInviteEmail({ cvContent: candidate.cvContent, role: appliedRole })
-      : await draftRejectEmail({ cvContent: candidate.cvContent, role: appliedRole });
+      ? await draftInviteEmail({ cvContent: candidate.cvContent, role: rubricRole })
+      : await draftRejectEmail({ cvContent: candidate.cvContent, role: rubricRole });
 
-  const personalDetails = JSON.parse(candidate.personalDetails) as {
-    name: string;
-  };
+  const personalDetails = JSON.parse(candidate.personalDetails) as { name: string };
   const body = result.body.split("{{NAME}}").join(personalDetails.name);
   const subject = result.subject.split("{{NAME}}").join(personalDetails.name);
 
@@ -138,16 +131,12 @@ async function recomputeDraftForCandidate(
     create: {
       candidateId,
       emailType: desiredType,
+      templateType: desiredType,
       subject,
       body,
       status: "draft",
     },
-    update: {
-      emailType: desiredType,
-      subject,
-      body,
-      status: "draft",
-    },
+    update: { emailType: desiredType, templateType: desiredType, subject, body, status: "draft" },
   });
 
   await prisma.candidate.update({

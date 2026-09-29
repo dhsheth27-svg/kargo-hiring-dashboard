@@ -15,20 +15,69 @@ datasource db {
   provider = "postgresql"
 }
 
+// A job posting. "rubricRole" ties it to one of the two fixed Kargo
+// scoring rubrics (PM/SPM, from rubric.txt) — creating a role here is an
+// organizational/metadata layer (title, description, location, seniority,
+// skills for display) and does NOT change how candidates are scored; the
+// scoring engine stays the fixed, validated PM/SPM rubric regardless of
+// what's entered here.
+model Role {
+  id              String   @id @default(cuid())
+  title           String
+  description     String
+  location        String?
+  seniority       String?
+  requiredSkills  String // comma-separated, display/reference only
+  preferredSkills String? // comma-separated, display/reference only
+  rubricRole      String // "PM" | "SPM" — which fixed rubric scores applicants
+  status          String   @default("active") // "draft" | "active" | "closed"
+  createdAt       DateTime @default(now())
+
+  candidates Candidate[]
+}
+
 model Candidate {
   id             String   @id @default(cuid())
-  appliedRole    String // "PM" | "SPM"
+  roleId         String
+  role           Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  appliedRole    String // "PM" | "SPM" — mirrors role.rubricRole at creation time,
+                        // kept so the scoring pipeline doesn't need to join Role
   personalDetails String  // JSON string: { name, email, phone } — NEVER sent to any AI call
   cvContent      String? // PII-stripped CV content (work history, skills, education, achievements)
   rawFileRef     String? // original uploaded filename (the bytes themselves are processed
                          // in-memory and discarded, never persisted to disk — see pipeline.ts)
-  status         String   @default("uploaded") // uploaded -> extracted -> scored -> briefed -> drafted -> sent
+  status         String   @default("uploaded") // pipeline status: uploaded -> extracted -> scored -> briefed -> drafted -> sent
+  reviewStatus   String   @default("needs_review") // recruiter-driven: needs_review | in_review | shortlisted | declined
+  recruiterRating Int? // 1-5, set manually by the recruiter — separate from the AI fit score
   createdAt      DateTime @default(now())
 
   scores       Score[]
   roleTotals   CandidateRoleTotal[]
   briefs       Brief[]
   draftEmails  DraftEmail[]
+  notes        Note[]
+  activities   Activity[]
+}
+
+// Private, recruiter-only notes — never shown to or generated from AI,
+// never included in any candidate-facing email.
+model Note {
+  id          String   @id @default(cuid())
+  candidateId String
+  candidate   Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  text        String
+  createdAt   DateTime @default(now())
+}
+
+// A lightweight audit/activity trail per candidate, surfaced on the
+// candidate profile and the dashboard's "recent activity" feed.
+model Activity {
+  id          String   @id @default(cuid())
+  candidateId String
+  candidate   Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  type        String // uploaded | scored | status_changed | rating_changed | note_added | email_sent | email_failed
+  message     String
+  createdAt   DateTime @default(now())
 }
 
 model RubricCriterion {
@@ -84,15 +133,17 @@ model Brief {
 }
 
 model DraftEmail {
-  id          String   @id @default(cuid())
-  candidateId String
-  candidate   Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
-  emailType   String // "invite" | "reject"
-  subject     String
-  body        String // real candidate name substituted in, never a [NAME] placeholder
-  status      String   @default("draft") // "draft" | "sent"
-  sentAt      DateTime?
-  createdAt   DateTime @default(now())
+  id           String   @id @default(cuid())
+  candidateId  String
+  candidate    Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  emailType    String // "invite" | "reject" — which rank-based cutoff produced this by default
+  templateType String   @default("invite") // "invite" | "request_info" | "update" | "reject" — the template actually loaded in the composer
+  subject      String
+  body         String // real candidate name substituted in, never a [NAME] placeholder
+  status       String   @default("draft") // "draft" | "sent" | "failed"
+  sentAt       DateTime?
+  failedReason String?
+  createdAt    DateTime @default(now())
 
   @@unique([candidateId])
 }
