@@ -8,23 +8,30 @@ export async function GET(req: NextRequest) {
   const candidates = await prisma.candidate.findMany({
     where: roleId ? { roleId } : undefined,
     orderBy: { createdAt: "desc" },
-    include: { roleTotals: true, briefs: true, draftEmails: true },
+    include: { roleTotals: true, briefs: true, draftEmails: true, role: true },
   });
 
-  const shaped = candidates.map((c) => ({
-    id: c.id,
-    appliedRole: c.appliedRole,
-    roleId: c.roleId,
-    status: c.status,
-    reviewStatus: c.reviewStatus,
-    createdAt: c.createdAt,
-    name: JSON.parse(c.personalDetails).name,
-    totals: c.roleTotals,
-    hasBrief: c.briefs.length > 0,
-    draft: c.draftEmails[0]
-      ? { emailType: c.draftEmails[0].emailType, status: c.draftEmails[0].status }
-      : null,
-  }));
+  const shaped = candidates.map((c) => {
+    const total = c.roleTotals.find((t) => t.roleScored === c.role.rubricRole);
+    const personalDetails = JSON.parse(c.personalDetails) as { name: string; email: string };
+    return {
+      id: c.id,
+      appliedRole: c.appliedRole,
+      roleId: c.roleId,
+      roleTitle: c.role.title,
+      roleHue: c.role.hue,
+      status: c.status,
+      stage: c.stage,
+      createdAt: c.createdAt,
+      name: personalDetails.name,
+      email: personalDetails.email,
+      score: total ? Math.round(total.totalScore) : null,
+      hasBrief: c.briefs.length > 0,
+      draft: c.draftEmails[0]
+        ? { emailType: c.draftEmails[0].emailType, status: c.draftEmails[0].status }
+        : null,
+    };
+  });
 
   return NextResponse.json({ candidates: shaped });
 }

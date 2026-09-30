@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 type Stage = "queued" | "uploading" | "done" | "error";
@@ -21,7 +21,6 @@ const STAGE_LABEL: Record<Stage, string> = {
 export default function UploadClient({ roleId }: { roleId: string }) {
   const router = useRouter();
   const [jobs, setJobs] = useState<FileJob[]>([]);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [running, setRunning] = useState(false);
 
   function onFilesSelected(files: FileList | null) {
@@ -55,78 +54,84 @@ export default function UploadClient({ roleId }: { roleId: string }) {
   }
 
   const allDone = jobs.length > 0 && jobs.every((j) => j.stage === "done" || j.stage === "error");
-  const acceptedTypes = ".pdf,.txt,.md";
 
   return (
-    <div className="max-w-2xl mx-auto px-6 py-12">
-      <h1 className="text-2xl font-semibold mb-1">Add candidates</h1>
-      <p className="text-sm mb-8" style={{ color: "var(--muted)" }}>
-        Upload one CV or a batch. Each one is automatically extracted, scored against the role&apos;s rubric,
-        and — if it makes the current shortlist — gets an interview brief and a draft email ready for your
-        review. Nothing is ever sent without your explicit confirmation.
+    <div style={{ maxWidth: 560, margin: "0 auto" }}>
+      <h1 style={{ margin: 0, fontWeight: 300, fontSize: 44, letterSpacing: "-0.03em", color: "white" }}>Add candidates.</h1>
+      <p style={{ margin: "12px 0 28px", color: "oklch(1 0 0 / .85)", fontSize: 15, fontWeight: 300, lineHeight: 1.5 }}>
+        Upload one CV or a batch. Each one is extracted, scored against the role&apos;s rubric, and — if it
+        makes the current shortlist — gets an interview brief and a draft email ready for your review.
+        Nothing is ever sent without your explicit confirmation.
       </p>
 
-      <div className="space-y-6">
-        <div>
-          <label className="block text-sm font-medium mb-2">CV files</label>
-          <div className="card border-dashed p-4">
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept={acceptedTypes}
-              multiple
-              disabled={running}
-              onChange={(e) => onFilesSelected(e.target.files)}
-              className="block w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:font-medium file:cursor-pointer"
-              style={{ color: "var(--foreground)" }}
-            />
-          </div>
-          <p className="text-xs mt-2" style={{ color: "var(--muted)" }}>
-            Accepted: PDF, TXT, MD.
-          </p>
-        </div>
+      <div className="mist-panel" style={{ padding: 20, marginBottom: 20 }}>
+        <input
+          type="file"
+          accept=".pdf,.txt,.md"
+          multiple
+          disabled={running}
+          onChange={(e) => onFilesSelected(e.target.files)}
+          style={{ width: "100%", fontSize: 14, color: "inherit" }}
+        />
+        <p style={{ fontSize: 12, color: "oklch(0.42 0.02 170)", marginTop: 10, marginBottom: 0 }}>Accepted: PDF, TXT, MD.</p>
+      </div>
 
-        {jobs.length > 0 && (
-          <div className="card divide-y" style={{ borderColor: "var(--border)" }}>
-            {jobs.map((job, i) => (
-              <div key={i} className="flex items-center justify-between px-4 py-3 text-sm">
-                <span className="truncate max-w-xs">{job.file.name}</span>
-                <span
-                  style={{
-                    color:
-                      job.stage === "error"
-                        ? "var(--status-declined)"
-                        : job.stage === "done"
-                        ? "var(--status-shortlisted)"
-                        : "var(--muted)",
-                  }}
-                >
-                  {job.error ?? STAGE_LABEL[job.stage]}
-                </span>
-              </div>
-            ))}
-          </div>
-        )}
-
-        <div className="flex gap-3">
-          <button
-            type="button"
-            onClick={runPipeline}
-            disabled={running || jobs.length === 0 || allDone}
-            className="btn-primary px-5 py-2.5 rounded-lg text-sm font-medium"
-          >
-            {running ? "Running…" : `Run pipeline (${jobs.length || 0})`}
-          </button>
-          {allDone && (
-            <button
-              type="button"
-              onClick={() => router.push(`/roles/${roleId}`)}
-              className="btn-secondary px-5 py-2.5 rounded-lg text-sm font-medium"
+      {jobs.length > 0 && (
+        <div className="mist-panel" style={{ marginBottom: 20, overflow: "hidden" }}>
+          {jobs.map((job, i) => (
+            <div
+              key={i}
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                padding: "12px 18px",
+                fontSize: 14,
+                borderTop: i > 0 ? "1px solid oklch(1 0 0 / .5)" : "none",
+              }}
             >
-              View role workspace →
-            </button>
-          )}
+              <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 300 }}>{job.file.name}</span>
+              <span
+                style={{
+                  color:
+                    job.stage === "error"
+                      ? "oklch(0.5 0.1 10)"
+                      : job.stage === "done"
+                      ? "oklch(0.45 0.1 150)"
+                      : "oklch(0.42 0.02 170)",
+                }}
+              >
+                {job.error ?? STAGE_LABEL[job.stage]}
+              </span>
+            </div>
+          ))}
         </div>
+      )}
+
+      <div style={{ display: "flex", gap: 10 }}>
+        <button
+          onClick={runPipeline}
+          disabled={running || jobs.length === 0 || allDone}
+          style={{
+            padding: "12px 22px",
+            borderRadius: 999,
+            border: "none",
+            background: "oklch(0.3 0.02 170)",
+            color: "white",
+            cursor: "pointer",
+            fontSize: 15,
+            opacity: running || jobs.length === 0 || allDone ? 0.5 : 1,
+          }}
+        >
+          {running ? "Running…" : `Run pipeline (${jobs.length || 0})`}
+        </button>
+        {allDone && (
+          <button
+            onClick={() => router.push(`/pipeline?role=${roleId}`)}
+            style={{ padding: "12px 22px", borderRadius: 999, border: "1px solid oklch(1 0 0 / .35)", background: "oklch(1 0 0 / .1)", color: "white", cursor: "pointer", fontSize: 15 }}
+          >
+            View pipeline →
+          </button>
+        )}
       </div>
     </div>
   );

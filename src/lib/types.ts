@@ -31,18 +31,29 @@ export const TEMPLATE_LABELS: Record<TemplateType, string> = {
   reject: "Rejection",
 };
 
-export const REVIEW_STATUSES = [
-  "needs_review",
-  "in_review",
-  "shortlisted",
-  "declined",
-] as const;
-export type ReviewStatus = (typeof REVIEW_STATUSES)[number];
-export const REVIEW_STATUS_LABELS: Record<ReviewStatus, string> = {
-  needs_review: "Needs review",
-  in_review: "In review",
-  shortlisted: "Shortlisted",
+// Kanban pipeline stages. "declined" isn't a kanban column (candidates
+// leave the board when rejected) but still needs to be a real, queryable
+// stage — the Candidates table and profile page both show it.
+export const STAGES = ["applied", "screen", "interview", "offer", "hired"] as const;
+export type Stage = (typeof STAGES)[number];
+export const BOARD_STAGES = STAGES; // the 5 kanban columns
+export const ALL_STAGES = [...STAGES, "declined"] as const;
+export type AnyStage = (typeof ALL_STAGES)[number];
+export const STAGE_LABELS: Record<AnyStage, string> = {
+  applied: "Applied",
+  screen: "Screening",
+  interview: "Interview",
+  offer: "Offer",
+  hired: "Hired",
   declined: "Declined",
+};
+export const STAGE_HUES: Record<AnyStage, number> = {
+  applied: 225,
+  screen: 190,
+  interview: 290,
+  offer: 45,
+  hired: 145,
+  declined: 10,
 };
 
 export const ROLE_POSTING_STATUSES = ["draft", "active", "closed"] as const;

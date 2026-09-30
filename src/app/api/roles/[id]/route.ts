@@ -21,11 +21,13 @@ export async function GET(
 
   const candidates = role.candidates.map((c) => {
     const total = c.roleTotals.find((t) => t.roleScored === role.rubricRole);
+    const personalDetails = JSON.parse(c.personalDetails) as { name: string; email: string };
     return {
       id: c.id,
-      name: JSON.parse(c.personalDetails).name,
+      name: personalDetails.name,
+      email: personalDetails.email,
       status: c.status,
-      reviewStatus: c.reviewStatus,
+      stage: c.stage,
       recruiterRating: c.recruiterRating,
       createdAt: c.createdAt,
       score: total ? Math.round(total.totalScore) : null,
@@ -47,6 +49,7 @@ export async function GET(
     preferredSkills: role.preferredSkills,
     rubricRole: role.rubricRole,
     status: role.status,
+    hue: role.hue,
     createdAt: role.createdAt,
     candidates,
   });

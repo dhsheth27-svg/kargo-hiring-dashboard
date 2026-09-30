@@ -31,6 +31,7 @@ model Role {
   preferredSkills String? // comma-separated, display/reference only
   rubricRole      String // "PM" | "SPM" — which fixed rubric scores applicants
   status          String   @default("active") // "draft" | "active" | "closed"
+  hue             Int      @default(145) // accent hue (0-360) for cards/avatars/badges
   createdAt       DateTime @default(now())
 
   candidates Candidate[]
@@ -47,7 +48,7 @@ model Candidate {
   rawFileRef     String? // original uploaded filename (the bytes themselves are processed
                          // in-memory and discarded, never persisted to disk — see pipeline.ts)
   status         String   @default("uploaded") // pipeline status: uploaded -> extracted -> scored -> briefed -> drafted -> sent
-  reviewStatus   String   @default("needs_review") // recruiter-driven: needs_review | in_review | shortlisted | declined
+  stage          String   @default("applied") // recruiter-driven pipeline stage: applied | screen | interview | offer | hired | declined
   recruiterRating Int? // 1-5, set manually by the recruiter — separate from the AI fit score
   createdAt      DateTime @default(now())
 

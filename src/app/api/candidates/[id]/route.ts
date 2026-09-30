@@ -30,7 +30,7 @@ export async function GET(
     id: candidate.id,
     appliedRole: candidate.appliedRole,
     status: candidate.status,
-    reviewStatus: candidate.reviewStatus,
+    stage: candidate.stage,
     recruiterRating: candidate.recruiterRating,
     createdAt: candidate.createdAt,
     name: personalDetails.name,
@@ -43,6 +43,7 @@ export async function GET(
       rubricRole: candidate.role.rubricRole,
       requiredSkills: candidate.role.requiredSkills,
       preferredSkills: candidate.role.preferredSkills,
+      hue: candidate.role.hue,
     },
     totals: candidate.roleTotals,
     scoresByRole: {

@@ -1,125 +1,163 @@
 @import "tailwindcss";
 
-/* Design direction: a "casebook" for reviewing candidate dossiers — calm
-   paper ground, ink-indigo accent (not the usual terracotta/cream combo),
-   a serif for names and page titles, plain sans for every operational
-   surface (tables, forms, controls). Semantic status colors (good/warn/
-   critical) stay independent of the accent hue so they read at a glance. */
-:root {
-  --bg: #f3f3f0;
-  --surface: #ffffff;
-  --surface-muted: #e9e9e4;
-  --fg: #1d2024;
-  --muted: #63666b;
-  --border: #dcdcd5;
-
-  --accent: #2e3f6b; /* ink indigo — primary actions */
-  --accent-hover: #212e4f;
-  --accent-soft: #e3e6f0;
-
-  --status-needs-review: #63666b;
-  --status-needs-review-bg: #eceae3;
-  --status-in-review: #8a5a1f;
-  --status-in-review-bg: #f3e8d5;
-  --status-shortlisted: #2f6d4f;
-  --status-shortlisted-bg: #e2eee6;
-  --status-declined: #9c3b3b;
-  --status-declined-bg: #f5e6e4;
-
-  --score-high: #2f6d4f;
-  --score-mid: #8a5a1f;
-  --score-low: #9c3b3b;
-
-  /* Back-compat aliases for earlier component code written against these names. */
-  --background: var(--bg);
-  --foreground: var(--fg);
-}
-
-@theme inline {
-  --color-background: var(--bg);
-  --color-foreground: var(--fg);
-  --font-sans: var(--font-geist-sans);
-  --font-serif: var(--font-serif);
-  --font-mono: var(--font-geist-mono);
-}
+/* "Mist" — an atmospheric sage/mint glass aesthetic. Deliberately
+   single-look (matches the design handoff prototype exactly, no light/
+   dark toggle): a fixed dark gradient canvas throughout, frosted glass
+   panels, one hue-based accent formula. */
 
 body {
-  background: var(--bg);
-  color: var(--fg);
-  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
-  min-height: 100vh;
+  margin: 0;
+  background: oklch(0.42 0.028 175);
+  color: oklch(0.28 0.02 170);
+  font-family: var(--font-hanken), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+* {
+  box-sizing: border-box;
+}
+a {
+  color: inherit;
+  text-decoration: none;
+}
+input,
+textarea,
+button {
+  font-family: inherit;
+}
+input::placeholder,
+textarea::placeholder {
+  color: currentColor;
+  opacity: 0.55;
 }
 
-h1, h2, h3 {
-  font-family: var(--font-serif), Georgia, serif;
-  text-wrap: balance;
-  letter-spacing: -0.01em;
+.mist-panel {
+  background: linear-gradient(165deg, oklch(0.95 0.015 150 / 0.94), oklch(0.87 0.028 160 / 0.9));
+  border: 1px solid oklch(1 0 0 / 0.7);
+  box-shadow: 0 30px 60px -34px oklch(0.2 0.03 170 / 0.6), inset 0 1px 0 white;
+  border-radius: 30px;
+  color: oklch(0.28 0.02 170);
 }
 
-.card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 0.75rem;
+.kg-logo:hover > div:first-child {
+  transform: rotate(180deg);
 }
 
-/* Lighter-weight row treatment for repeated list items (notes, activity)
-   that shouldn't compete visually with primary content blocks. */
-.row {
-  border-bottom: 1px solid var(--border);
+@keyframes kgFade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
-.row:last-child {
-  border-bottom: none;
+@keyframes kgSlide {
+  from {
+    transform: translateX(40px);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+@keyframes kgPop {
+  from {
+    transform: translateY(16px) scale(0.97);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+@keyframes kgUp {
+  from {
+    transform: translateY(10px);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+@keyframes kgRise {
+  from {
+    transform: translateY(26px) scale(0.97);
+    opacity: 0;
+    filter: blur(6px);
+  }
+  to {
+    transform: none;
+    opacity: 1;
+    filter: blur(0);
+  }
+}
+@keyframes kgFloatA {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(90px, 70px);
+  }
+}
+@keyframes kgFloatB {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(-100px, 60px);
+  }
+}
+@keyframes kgFloatC {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(70px, -90px);
+  }
+}
+@keyframes kgTwinkle {
+  0%,
+  100% {
+    opacity: 0.15;
+  }
+  50% {
+    opacity: 0.9;
+  }
+}
+@keyframes kgGlow {
+  0%,
+  100% {
+    box-shadow: 0 0 24px 4px oklch(1 0 0 / 0.45);
+  }
+  50% {
+    box-shadow: 0 0 38px 10px oklch(1 0 0 / 0.7);
+  }
+}
+@keyframes kgSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes kgPulse {
+  0% {
+    box-shadow: 0 0 0 0 oklch(1 0 0 / 0.7);
+  }
+  100% {
+    box-shadow: 0 0 0 9px oklch(1 0 0 / 0);
+  }
 }
 
-.btn-primary {
-  background: var(--accent);
-  color: white;
-  transition: background-color 0.15s ease;
-}
-.btn-primary:hover {
-  background: var(--accent-hover);
-}
-.btn-primary:disabled {
-  opacity: 0.5;
-}
-
-.btn-secondary {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  color: var(--fg);
-  transition: border-color 0.15s ease, background-color 0.15s ease;
-}
-.btn-secondary:hover {
-  border-color: var(--accent);
-  background: var(--surface-muted);
-}
-
-@keyframes fade-up {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-.animate-fade-up {
-  animation: fade-up 0.35s ease both;
-}
-
-@keyframes shimmer {
-  0% { background-position: -400px 0; }
-  100% { background-position: 400px 0; }
-}
-.shimmer {
-  background: linear-gradient(90deg, var(--surface-muted), #ffffff, var(--surface-muted));
-  background-size: 400px 100%;
-  animation: shimmer 1.4s infinite;
-}
-
-/* Visible, high-contrast focus ring for keyboard navigation */
 a:focus-visible,
 button:focus-visible,
 input:focus-visible,
 textarea:focus-visible,
 select:focus-visible,
 [tabindex]:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid white;
   outline-offset: 2px;
   border-radius: 4px;
 }
@@ -139,9 +177,9 @@ select:focus-visible,
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #cfcfc6;
+  background: oklch(1 0 0 / 0.25);
   border-radius: 999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #b9b9ad;
+  background: oklch(1 0 0 / 0.4);
 }

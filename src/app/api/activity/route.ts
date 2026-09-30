@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 export async function GET() {
   const activities = await prisma.activity.findMany({
     orderBy: { createdAt: "desc" },
-    take: 20,
+    take: 60,
     include: { candidate: { include: { role: true } } },
   });
 
@@ -18,6 +18,7 @@ export async function GET() {
       candidateName: JSON.parse(a.candidate.personalDetails).name,
       roleId: a.candidate.roleId,
       roleTitle: a.candidate.role.title,
+      roleHue: a.candidate.role.hue,
     })),
   });
 }

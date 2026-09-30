@@ -1,5 +1,5 @@
-import RoleSetupClient from "./RoleSetupClient";
+import RoleModalClient from "./RoleModalClient";
 
 export default function NewRolePage() {
-  return <RoleSetupClient />;
+  return <RoleModalClient />;
 }
